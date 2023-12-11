@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>카드게임</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(to right, #ff0000, #0000ff);
+    }
+
+    .wrap {
+      display: flex;
+      width: 100%;
+      margin-top: 30px;
+      flex-direction: column;
+    }
+
+    .wrap .card-row {
+      position: relative;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .wrap .card-row .card {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 4px;
+    }
+
+    .card-front {
+      display: flex;
+      justify-content: center;
+      color: white;
+      background: linear-gradient(to right, black, white);
+    }
+
+    .card-front:hover {
+      background: #6B8CE0F7;
+      transition: 0.7s;
+    }
+
+    .card-back {
+      display: flex;
+      justify-content: center;
+      color: white;
+      transform: rotateY(90deg);
+      pointer-events: none;
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 100px;
+      backface-visibility: hidden;
+      transition: transform 700ms;
+      border: 1px solid black;
+    }
+
+    .flipped {
+      transform: rotateY(90deg);
+    }
+
+    .flipped + .card-back {
+      transform: rotateY(360deg);
+    }
+
+    .number-btn, .game-btn{
+      width: 140px;
+      height: 60px;
+      margin-right: 24px;
+      margin-bottom: 24px;
+      border-radius: 20px;
+      background-color: aquamarine;
+      border: none;
+      transition-duration: 0.3s;
+      box-shadow: 2px 2px 2px black;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .number-btn:active {
+      margin-left: 1px;
+      margin-right: 1px;
+      box-shadow: none;
+    }
+
+    .number-btn:hover {
+      background-color: cornflowerblue;
+    }
+
+    .down {
+      background-color: cornflowerblue;
+    }
+
+    .game-btn {
+      background-color: black;
+      color: white;
+    }
+
+    .game-btn:hover {
+      background-color: greenyellow;
+    }
+
+    .game-btn:active {
+      box-shadow: none;
+    }
+
+    .timer {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 36px;
+      width: 300px;
+      height: 60px;
+      color: white;
+      right: 20px;
+      border: 1px solid white;
+      border-radius: 30px;
+    }
+
+    /*.flipped > .card-front {*/
+    /*  transform: rotateY(90deg);*/
+    /*}*/
+
+    /*.flipped > .card-back {*/
+    /*  transform: rotateY(360deg);*/
+    /*}*/
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="number-btn-container">
+      <Button class="number-btn btn2 down" onClick="gameTypeButtonClick(2)">4 x 2</Button>
+      <Button class="number-btn btn3" onClick="gameTypeButtonClick(3)">4 x 3</Button>
+      <Button class="number-btn btn4" onClick="gameTypeButtonClick(4)">4 x 4</Button>
+      <Button class="number-btn btn5" onClick="gameTypeButtonClick(5)">4 x 5</Button>
+      <Button class="number-btn btn6" onClick="gameTypeButtonClick(6)">4 x 6</Button>
+      <Button class="game-btn" onClick="gameStart()">START</Button>
+      <div class="timer"></div>
+    </div>
+  </div>
+<script>
+  const wrapTag = document.querySelector('.wrap');
+  let total = 8; // 카드 총갯수
+  let type = 2;
+
+  let shuffled = [];
+
+  let frontElement = [];
+  let backElement = [];
+
+  let count = 0;
+
+  let firstClick = false;
+  let secondClick = false;
+  let checkFlag = false;
+  let timer = 60;
+
+
+  function gameTypeButtonClick(index) {
+    // 버튼 클릭효과 주기
+    document.querySelector('.down').classList.remove('down');
+    let typeBtnTag = '';
+
+    for (let i = 2; i <= 6; i++) {
+      if (i === index) {
+        type = index;
+        const classNames = `.btn${i}`;
+        typeBtnTag = document.querySelector(classNames);
+      }
+    }
+
+    typeBtnTag.classList.add('down');
+
+    total = 4 * index;
+  }
+
+  function gameStart() {
+    reset();
+    startGame();
+  }
+  function reset() {
+    // 기존 태그들 제거 후 다시 Darw
+    document.querySelectorAll('.card-row').forEach(x => {
+      x.parentNode.removeChild(x);
+    });
+
+    shuffled = [];
+    frontElement = [];
+    backElement = [];
+
+    count = 0;
+
+    firstClick = false;
+    secondClick = false;
+    checkFlag = false;
+  }
+
+  function startGame() {
+    if (window.timer) clearInterval(window.timer);
+    timer = 30 * type;
+    let min = parseInt(timer / 60);
+    let sec = parseInt(timer % 60);
+    document.querySelector(".timer").textContent = min + "분" + sec + "초";
+
+    colorShuffle(); // 색상 랜덤값
+    createCard(); // Card 만들기
+  }
+
+  function timerStart() {
+    let time = timer;
+    let min = '';
+    let sec = '';
+
+    if (window.timer) clearInterval(window.timer);
+
+    window.timer = setInterval(() => {
+      min = parseInt(time / 60);
+      sec = time % 60;
+
+      document.querySelector(".timer").textContent = min + "분 " + sec + "초";
+      time--;
+
+      if (time < 0) {
+        clearInterval(window.timer);
+        alert('Game Over');
+        gameStart();
+      }
+    }, 1000);
+  }
+
+  function colorShuffle() {
+    let colors = ['#000000', '#006000', '#00ff00', '#0000ff', '#00ffff', '#0080ff', '#ff0000', '#ff8000', '#ffff00', '#ff00ff', '#ff60ff', '#ffffff'];
+    colors.sort(() => Math.random() - 0.5); // 배열 무작위로 섞음
+
+    let randColors = [];
+
+    for (let i = 0; i < total / 2; i++) {
+      randColors.push(colors[i]);
+    }
+    shuffled = randColors.concat(randColors);
+  }
+
+  function createCard() {
+    for (let i = 0; i < 4; i++) {
+      cardRowDraw(i);
+      cardDraw(i + 1);
+    }
+  }
+
+  // 각 행의 Layout
+  function cardRowDraw(index) {
+    const cardRow = document.createElement('div');
+    cardRow.className = `card-row row${index + 1}`;
+    wrapTag.appendChild(cardRow);
+  }
+
+  // 한줄에 6개의 그림
+  function cardDraw(index) {
+    for (let i = 0; i < type; i++) {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const frontCard = document.createElement('div');
+      frontCard.className = 'card-front';
+      frontCard.addEventListener('click', onClickCard);
+
+      const backCard = document.createElement('div');
+      backCard.className = 'card-back';
+      backCard.style.backgroundColor = shuffled.pop();
+
+      card.appendChild(frontCard);
+      card.appendChild(backCard);
+      const rows = `.row${index}`
+      document.querySelector(rows).appendChild(card);
+
+      // 처음 몇초간 뒷면 보여주는 코드
+      frontCard.classList.toggle('flipped');
+      setTimeout(() => {
+        frontCard.classList.toggle('flipped');
+        // 뒷면 보여준다음 타이머 시작
+        timerStart();
+      }, 3000);
+    }
+  }
+
+  function onClickCard(event) {
+    // 2개이상 클릭 방지
+    if (checkFlag) {
+      return;
+    }
+
+    // 앞면 태그와 뒷면 태그값 push
+    frontElement.push(event.target);
+    backElement.push(event.target.nextElementSibling);
+    console.log(backElement[0], backElement[1]);
+
+    // 빠르게 연속 클릭 방지
+    if (backElement[0] === backElement[1]) {
+      frontElement.pop();
+      backElement.pop();
+      return;
+    }
+    // 클릭 시 flipped className 추가
+    event.target.classList.toggle('flipped');
+
+    // 첫번째 클릭인지 두번째 클릭인지 확인
+    if (firstClick === false) {
+      firstClick = true;
+    } else if (secondClick === false) {
+      secondClick = true;
+      checkFlag = true;
+    }
+
+    // 몇 초뒤 색깔이 같은지 판별
+    if (firstClick && secondClick) {
+      setTimeout(() => {
+        const firstColor = backElement[0].style.backgroundColor; //첫 번째 클릭한 컬러
+        const secondColor = backElement[1].style.backgroundColor; // 두 번째 클릭한 컬러
+
+        // 색깔이 같지않으면 다시 뒤집기.
+        if (firstColor !== secondColor) {
+          frontElement[0].classList.remove("flipped");
+          frontElement[1].classList.remove("flipped");
+        }
+
+        // 같은 색깔 맞추면 맞춘 횟수 증가
+        if (firstColor === secondColor) {
+          count += 1;
+        }
+
+        // 색깔 다 맞출 시
+        if (count === total / 2) {
+          alert('축하드립니다 !');
+          gameStart();
+        }
+        // 같은 그림인지 확인 후 변수 초기화
+        clear();
+      }, 700);
+    }
+    // setTimeout(() => {
+    //   event.target.classList.toggle('flipped');
+    // }, 1000);
+  }
+
+  function clear() {
+    firstClick = false;
+    secondClick = false;
+    checkFlag = false;
+    frontElement = [];
+    backElement = [];
+  }
+  gameStart();
+</script>
+</body>
+</html>
